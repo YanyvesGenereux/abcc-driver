@@ -350,18 +350,26 @@ void ABCC_DrvSpiRunDriverTx( void )
          #endif // ABCC_CFG_SPI_DYNAMIC_MSG_FRAG_LEN
       }
 
-      spi_drv_fRetransmit = FALSE;
-
       /*---------------------------------------------------------------------------
       ** Write message handling.
+      **
+      ** A retransmission carries the message fragment of the original frame and
+      ** nothing else. A module that received the original frame ignores the
+      ** retransmission, so a message written after the original frame was sent
+      ** would be lost if it went out in it. Such a message waits for the next
+      ** frame. A fragment of the original frame is still in flight while
+      ** iCurrFragLength is non-zero.
       **---------------------------------------------------------------------------
       */
       ABCC_PORT_EnterCritical();
-      if( spi_drv_sWriteFragInfo.psWriteMsg != NULL )
+      if( ( spi_drv_sWriteFragInfo.psWriteMsg != NULL ) &&
+          ( !spi_drv_fRetransmit || ( spi_drv_sWriteFragInfo.iCurrFragLength != 0 ) ) )
       {
          fHandleWriteMsg = TRUE;
       }
       ABCC_PORT_ExitCritical();
+
+      spi_drv_fRetransmit = FALSE;
 
       if( fHandleWriteMsg )
       {
